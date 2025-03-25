@@ -15,7 +15,8 @@ async function forceFetchAllHomework(id: string): Promise<Homework[]> {
 async function fetchAllHomework(id: string): Promise<Homework[]> {
     const hw = await redis.get(`homework:${id}`);
     if(hw) {
-        return JSON.parse(hw);
+        const now = new Date();
+        return (JSON.parse(hw) as Homework[]).filter(val => (val.endAt? new Date(val.endAt) : now) >= now);
     } else {
         return await forceFetchAllHomework(id);
     }

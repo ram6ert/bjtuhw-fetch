@@ -1,6 +1,6 @@
 import { env } from "process";
 import express, { type Request, type Response } from "express";
-import user from "./user";
+import users from "./users";
 
 const PORT = parseInt(env.PORT || '3000');
 const HOSTNAME = env.HOSTNAME || 'localhost';
@@ -8,7 +8,7 @@ const HOSTNAME = env.HOSTNAME || 'localhost';
 const app = express();
 app.use(express.json());
 
-app.use("/user", user);
+app.use("/users", users);
 app.use((err: any, _req: Request, res: Response, _next: Function) => {
     console.error(err);
     res.status(500).send('Internal Server Error');

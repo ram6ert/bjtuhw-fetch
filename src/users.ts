@@ -83,6 +83,9 @@ router.use('/:id/homework/refresh', rateLimit(
         windowMs: 15 * 60 * 1000,
         limit: 5,
         store: new RedisStore({ prefix: 'rate-limit:', sendCommand:(...args) => redis.sendCommand(args) }),
+        skip: (req, _) => {
+            return req.ip === '127.0.0.1' || req.ip === 'localhost';
+        }
     }
 ))
 

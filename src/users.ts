@@ -1,6 +1,6 @@
 import express from 'express'
 import redis from './redis';
-import getHomework, { type Homework } from './hw';
+import getHomework, { BASE_URL, type Homework } from './hw';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 
@@ -44,7 +44,11 @@ function unserializeHomework(homework: SerializedHomework): Homework {
 
 async function forceFetchAllHomework(id: string): Promise<HomeworkResult> {
     const last_update = new Date();
-    const homework = (await getHomework(id)).map(val => serializeHomework(val));
+    let homework = (await getHomework(id)).map(val => serializeHomework(val));
+    homework = homework.map(val => {
+        val.content = val.content.replaceAll(`${BASE_URL}/ve/`, 'https://study.bjtu.top/')
+        return val;
+    });
     const content = {
         homework, last_update: last_update.toISOString()
     };

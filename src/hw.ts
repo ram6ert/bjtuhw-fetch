@@ -1,7 +1,8 @@
 import axios from 'axios';
 import crypto from 'crypto';
+import pLimit from 'p-limit';
 
-const BASE_URL = 'http://123.121.147.7:88/';
+export const BASE_URL = 'http://123.121.147.7:88';
 const HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0'
 };
@@ -149,10 +150,14 @@ export async function getHomeworks(studentId: string): Promise<Homework[]> {
         };
 
         const promises = [];
+        const limit = pLimit(2);
         for (const course of courses) {
             // 获取不同子类型的作业
             for (let subType = 0; subType < 5; subType++) {
-                promises.push(fetchHomeworkSubType(course, subType.toString()));
+                promises.push(
+                    limit(
+                        () => fetchHomeworkSubType(course, subType.toString())
+                    ));
             }
         }
 

@@ -6,6 +6,7 @@ const PORT = parseInt(env.PORT || '3000');
 const HOSTNAME = env.HOSTNAME || 'localhost';
 
 const app = express();
+app.set('trust proxy', 'loopback');
 app.use(express.json());
 
 app.use("/users", users);

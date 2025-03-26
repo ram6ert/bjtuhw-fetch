@@ -48,7 +48,7 @@ async function forceFetchAllHomework(id: string): Promise<HomeworkResult> {
     const content = {
         homework, last_update: last_update.toISOString()
     };
-    await redis.set(`homework:${id}`, JSON.stringify(content), {EX: 12 * 60 * 60 * 1000});
+    await redis.set(`homework:${id}`, JSON.stringify(content), {EX: 12 * 60 * 60});
     return content;
 }
 
@@ -85,7 +85,7 @@ router.use('/:id/homework/refresh', rateLimit(
         store: new RedisStore({ prefix: 'rate-limit:', sendCommand:(...args) => redis.sendCommand(args) }),
         skip: (req, _) => {
             return req.ip === '127.0.0.1' || req.ip === 'localhost';
-        }
+        },
     }
 ))
 

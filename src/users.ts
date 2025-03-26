@@ -1,19 +1,50 @@
 import express from 'express'
 import redis from './redis';
-import getHomeworks, { type Homework } from './hw';
+import getHomework, { type Homework } from './hw';
 import rateLimit from 'express-rate-limit';
 import RedisStore from 'rate-limit-redis';
 
 const router = express.Router();
 
 export type HomeworkResult = {
-    homework: Homework[],
+    homework: SerializedHomework[],
     last_update: string;
+}
+
+export type SerializedHomework = {
+    course_name: string,
+    title: string,
+    content: string,
+    open_at?: string,
+    end_at?: string,
+    create_at?: string,
+};
+
+function serializeHomework(homework: Homework): SerializedHomework {
+    return {
+        end_at: homework.endAt?.toISOString(),
+        create_at: homework.createAt?.toISOString(),
+        open_at: homework.openAt?.toISOString(),
+        course_name: homework.courseName,
+        content: homework.content,
+        title: homework.title,
+    };
+}
+
+function unserializeHomework(homework: SerializedHomework): Homework {
+    return {
+        endAt: homework.end_at? new Date(homework.end_at) : null,
+        createAt: homework.create_at? new Date(homework.create_at) : null,
+        openAt: homework.open_at? new Date(homework.open_at) : null,
+        courseName: homework.course_name,
+        content: homework.content,
+        title: homework.title,
+    };
 }
 
 async function forceFetchAllHomework(id: string): Promise<HomeworkResult> {
     const last_update = new Date();
-    const homework = await getHomeworks(id);
+    const homework = (await getHomework(id)).map(val => serializeHomework(val));
     const content = {
         homework, last_update: last_update.toISOString()
     };
@@ -27,17 +58,11 @@ async function fetchAllHomework(id: string): Promise<HomeworkResult> {
         const homeworkResult = JSON.parse(hw) as HomeworkResult;
 
         const now = new Date();
-        const originalHomework = homeworkResult.homework;
-        const filteredHomework = originalHomework.filter(val => {
-            if(!val.endAt) {
-                return true;
-            } else {
-                return val.endAt >= now;
-            }
-        });
+        const originalHomework = homeworkResult.homework.map(val => unserializeHomework(val));
+        const filteredHomework = originalHomework.filter(val => !val.endAt || val.endAt > now);
         if(filteredHomework.length !== originalHomework.length) {
-            homeworkResult.homework = filteredHomework;
-            await redis.set(`homework:${id}`, JSON.stringify(homeworkResult));
+            homeworkResult.homework = filteredHomework.map(val => serializeHomework(val));
+            await redis.set(`homework:${id}`, JSON.stringify(homeworkResult), { KEEPTTL: true });
         }
         return homeworkResult;
     } else {

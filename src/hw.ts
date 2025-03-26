@@ -6,17 +6,14 @@ const HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0'
 };
 
-// 时区设置
-const DISTANT_PAST = new Date(0); // 1970-01-01
-
 // 作业类型定义
 export type Homework = {
     courseName: string,
     title: string,
     content: string,
-    openAt: Date,
+    openAt: Date | null,
     endAt: Date | null,
-    createAt: Date,
+    createAt: Date | null,
 }
 
 function parseDate(dateStr: string): Date | null {
@@ -129,9 +126,9 @@ export async function getHomeworks(studentId: string): Promise<Homework[]> {
                             if (!homework.subTime) {
                                 allHomeworks.push({
                                     courseName: homework.course_name,
-                                    openAt: parseDate(homework.open_date) || DISTANT_PAST,
+                                    openAt: parseDate(homework.open_date),
                                     endAt: parseDate(homework.end_time),
-                                    createAt: parseDate(homework.create_date) || DISTANT_PAST,
+                                    createAt: parseDate(homework.create_date),
                                     title: homework.title,
                                     content: homework.content
                                 });
@@ -147,7 +144,7 @@ export async function getHomeworks(studentId: string): Promise<Homework[]> {
 
         // 过滤截止日期在当前时间之后的作业
         const now = new Date();
-        return allHomeworks.filter(homework => homework.endAt && homework.endAt > now);
+        return allHomeworks.filter(homework => !homework.endAt || homework.endAt > now);
 
     } catch (error) {
         throw error instanceof Error ? error : new Error('获取作业失败');

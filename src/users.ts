@@ -6,17 +6,40 @@ import RedisStore from 'rate-limit-redis';
 
 const router = express.Router();
 
-async function forceFetchAllHomework(id: string): Promise<Homework[]> {
-    const hw = await getHomeworks(id);
-    await redis.set(`homework:${id}`, JSON.stringify(hw), {EX: 12 * 60 * 60 * 1000});
-    return hw;
+export type HomeworkResult = {
+    homework: Homework[],
+    last_update: string;
 }
 
-async function fetchAllHomework(id: string): Promise<Homework[]> {
+async function forceFetchAllHomework(id: string): Promise<HomeworkResult> {
+    const last_update = new Date();
+    const homework = await getHomeworks(id);
+    const content = {
+        homework, last_update: last_update.toISOString()
+    };
+    await redis.set(`homework:${id}`, JSON.stringify(content), {EX: 12 * 60 * 60 * 1000});
+    return content;
+}
+
+async function fetchAllHomework(id: string): Promise<HomeworkResult> {
     const hw = await redis.get(`homework:${id}`);
     if(hw) {
+        const homeworkResult = JSON.parse(hw) as HomeworkResult;
+
         const now = new Date();
-        return (JSON.parse(hw) as Homework[]).filter(val => (val.endAt? new Date(val.endAt) : now) >= now);
+        const originalHomework = homeworkResult.homework;
+        const filteredHomework = originalHomework.filter(val => {
+            if(!val.endAt) {
+                return true;
+            } else {
+                return val.endAt >= now;
+            }
+        });
+        if(filteredHomework.length !== originalHomework.length) {
+            homeworkResult.homework = filteredHomework;
+            await redis.set(`homework:${id}`, JSON.stringify(homeworkResult));
+        }
+        return homeworkResult;
     } else {
         return await forceFetchAllHomework(id);
     }

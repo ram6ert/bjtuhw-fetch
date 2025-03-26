@@ -94,52 +94,71 @@ export async function getHomeworks(studentId: string): Promise<Homework[]> {
         });
 
         const courseList = courseResp.data.courseList;
-        const courses = courseList.map((course: any) => ({
+
+        type Course = {
+            id: string, name: string
+        };
+
+        const courses: Course[] = courseList.map((course: any) => ({
             id: course.id,
             name: course.name
         }));
 
         // 获取所有课程的作业
-        const allHomeworks: Homework[] = [];
+        let allHomeworks: Homework[] = [];
 
+        const fetchHomeworkSubType = async (course: Course, subType: string) => {
+            try {
+                const homeworkResp = await client.get('/ve/back/coursePlatform/homeWork.shtml', {
+                    params: {
+                        'method': 'getHomeWorkList',
+                        'cId': course.id,
+                        'subType': subType.toString(),
+                        'page': '1',
+                        'pagesize': '50'
+                    }
+                });
+
+                const homeworkData = homeworkResp.data;
+
+                const result = [];
+                if (homeworkData.total > 0) {
+                    const homeworks = homeworkData.courseNoteList;
+
+                    // 筛选未提交的作业
+                    for (const homework of homeworks) {
+                        if (!homework.subTime) {
+                            result.push({
+                                courseName: homework.course_name,
+                                openAt: parseDate(homework.open_date),
+                                endAt: parseDate(homework.end_time),
+                                createAt: parseDate(homework.create_date),
+                                title: homework.title,
+                                content: homework.content
+                            });
+                        }
+                    }
+                }
+
+                return result;
+            }
+            catch (error) {
+                console.error(error);
+                throw error;
+            }
+        };
+
+        const promises = [];
         for (const course of courses) {
             // 获取不同子类型的作业
             for (let subType = 0; subType < 5; subType++) {
-                try {
-                    const homeworkResp = await client.get('/ve/back/coursePlatform/homeWork.shtml', {
-                        params: {
-                            'method': 'getHomeWorkList',
-                            'cId': course.id,
-                            'subType': subType.toString(),
-                            'page': '1',
-                            'pagesize': '50'
-                        }
-                    });
-
-                    const homeworkData = homeworkResp.data;
-
-                    if (homeworkData.total > 0) {
-                        const homeworks = homeworkData.courseNoteList;
-
-                        // 筛选未提交的作业
-                        for (const homework of homeworks) {
-                            if (!homework.subTime) {
-                                allHomeworks.push({
-                                    courseName: homework.course_name,
-                                    openAt: parseDate(homework.open_date),
-                                    endAt: parseDate(homework.end_time),
-                                    createAt: parseDate(homework.create_date),
-                                    title: homework.title,
-                                    content: homework.content
-                                });
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error(error);
-                    throw error;
-                }
+                promises.push(fetchHomeworkSubType(course, subType.toString()));
             }
+        }
+
+        const allHomeworkArray = await Promise.all(promises);
+        for(const homeworkArray of allHomeworkArray) {
+            allHomeworks = allHomeworks.concat(homeworkArray);
         }
 
         // 过滤截止日期在当前时间之后的作业

@@ -75,7 +75,13 @@ router.get('/:id/homework', async (req, res) => {
         res.status(401).end();
     }
 
-    res.json(await fetchAllHomework(req.params.id)).end();
+    try {
+        res.json(await fetchAllHomework(req.params.id)).end();
+    }
+    catch(err) {
+        console.error(err);
+        res.status(500).end();
+    }
 });
 
 router.use('/:id/homework/refresh', rateLimit(
@@ -93,7 +99,13 @@ router.post('/:id/homework/refresh', async (req, res) => {
     if(!/^\d{8}$/.test(req.params.id)) {
         res.status(401).end();
     }
-    await forceFetchAllHomework(req.params.id)
+    try {
+        await forceFetchAllHomework(req.params.id);
+    }
+    catch(err) {
+        console.error(err);
+        res.status(500).end();
+    }
     res.status(204).end();
 });
 

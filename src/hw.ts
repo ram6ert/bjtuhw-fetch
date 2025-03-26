@@ -72,7 +72,7 @@ export async function getHomeworks(studentId: string): Promise<Homework[]> {
 
         // 检查登录是否成功
         if (loginResp.status < 200 || loginResp.status >= 300 || (loginResp.data as string).includes('alert(')) {
-            throw new Error('登录失败');
+            throw new Error(`Login failed for ${studentId}`);
         }
 
         // 获取当前学期
@@ -143,7 +143,7 @@ export async function getHomeworks(studentId: string): Promise<Homework[]> {
                 return result;
             }
             catch (error) {
-                console.error(error);
+                console.error((error as any).message);
                 throw error;
             }
         };
@@ -166,7 +166,7 @@ export async function getHomeworks(studentId: string): Promise<Homework[]> {
         return allHomeworks.filter(homework => !homework.endAt || homework.endAt > now);
 
     } catch (error) {
-        throw error instanceof Error ? error : new Error('获取作业失败');
+        throw new Error(`Failed to fetch homework for ${studentId}.\n${(error as any).message?? error}`);
     }
 }
 

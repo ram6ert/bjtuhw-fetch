@@ -33,7 +33,7 @@ function parseDate(dateStr: string): Date | null {
     }
 }
 
-export async function getHomeworks(studentId: string): Promise<Homework[]> {
+export async function getHomework(studentId: string): Promise<Homework[]> {
     // 创建带cookie支持的axios实例
     const client = axios.create({
         baseURL: BASE_URL,
@@ -162,17 +162,29 @@ export async function getHomeworks(studentId: string): Promise<Homework[]> {
         }
 
         const allHomeworkArray = await Promise.all(promises);
-        for(const homeworkArray of allHomeworkArray) {
+        for (const homeworkArray of allHomeworkArray) {
             allHomeworks = allHomeworks.concat(homeworkArray);
         }
 
         // 过滤截止日期在当前时间之后的作业
         const now = new Date();
-        return allHomeworks.filter(homework => !homework.endAt || homework.endAt > now);
+        return allHomeworks.filter(homework => !homework.endAt || homework.endAt > now).sort((a, b) => {
+            if (!a.endAt) {
+                return -1;
+            } else if (!b.endAt) {
+                return 1;
+            } else {
+                if (a.endAt === b.endAt) {
+                    return `${a.courseName}-${a.title}`.localeCompare(`${b.courseName}-${b.title}`);
+                } else {
+                    return a.endAt.getTime() - b.endAt.getTime();
+                }
+            }
+        });
 
     } catch (error) {
-        throw new Error(`Failed to fetch homework for ${studentId}.\n${(error as any).message?? error}`);
+        throw new Error(`Failed to fetch homework for ${studentId}.\n${(error as any).message ?? error}`);
     }
 }
 
-export default getHomeworks;
+export default getHomework;

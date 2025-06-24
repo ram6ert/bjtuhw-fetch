@@ -1,4 +1,12 @@
-# bjtuhw-fetch
+# BJTUHW FETCH
+
+## Notice
+
+This was a simple web API interface for fetching, caching and serving homework data from the origin server.  
+
+Because of the denial of access from the origin server, we could no longer fetch homework from it. So I marked this repository as archived.
+
+## Installation
 
 To install dependencies:
 
